@@ -44,7 +44,30 @@ static void xioctl(int fh, int request, void *arg)
         }
 }
 
-int main(int argc, char **argv)
+
+void binarize(struct buffer *buffers, struct v4l2_buffer buf) {
+    char out_name[256];
+    FILE                            *fout;
+
+    sprintf(out_name, "out.ppm");
+    fout = fopen(out_name, "w");
+    if (!fout) {
+        perror("Cannot open image");
+        exit(EXIT_FAILURE);
+    }
+    //fprintf(fout, "P6\n%d %d 255\n",
+      //          fmt.fmt.pix.width, fmt.fmt.pix.height);
+      //
+    fprintf(fout, "P6\n640 480 255\n");
+
+    printf("%d\n", buf.bytesused);
+    fwrite(buffers[buf.index].start, buf.bytesused, 1, fout);
+    fclose(fout);
+}
+
+
+
+int grab_frame()
 {
         struct v4l2_format              fmt;
         struct v4l2_buffer              buf;
@@ -55,8 +78,6 @@ int main(int argc, char **argv)
         int                             r, fd = -1;
         unsigned int                    i, n_buffers;
         char                            *dev_name = "/dev/video0";
-        char                            out_name[256];
-        FILE                            *fout;
         struct buffer                   *buffers;
 
         fd = v4l2_open(dev_name, O_RDWR | O_NONBLOCK, 0);
@@ -81,7 +102,7 @@ int main(int argc, char **argv)
                         fmt.fmt.pix.width, fmt.fmt.pix.height);
 
         CLEAR(req);
-        req.count = 2;
+        req.count = 1;
         req.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
         req.memory = V4L2_MEMORY_MMAP;
         xioctl(fd, VIDIOC_REQBUFS, &req);
@@ -117,7 +138,7 @@ int main(int argc, char **argv)
         type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
 
         xioctl(fd, VIDIOC_STREAMON, &type);
-        for (i = 0; i < 20; i++) {
+        for (i = 0; i < 1; i++) {
                 do {
                         FD_ZERO(&fds);
                         FD_SET(fd, &fds);
@@ -137,7 +158,7 @@ int main(int argc, char **argv)
                 buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
                 buf.memory = V4L2_MEMORY_MMAP;
                 xioctl(fd, VIDIOC_DQBUF, &buf);
-
+#if 0
                 sprintf(out_name, "out%03d.ppm", i);
                 fout = fopen(out_name, "w");
                 if (!fout) {
@@ -146,9 +167,12 @@ int main(int argc, char **argv)
                 }
                 fprintf(fout, "P6\n%d %d 255\n",
                         fmt.fmt.pix.width, fmt.fmt.pix.height);
+                printf("%d\n", buf.bytesused);
                 fwrite(buffers[buf.index].start, buf.bytesused, 1, fout);
                 fclose(fout);
 
+#endif
+                binarize(buffers, buf);
                 xioctl(fd, VIDIOC_QBUF, &buf);
         }
 
@@ -159,4 +183,32 @@ int main(int argc, char **argv)
         v4l2_close(fd);
 
         return 0;
+}
+#if 0
+void binarize(struct buffer *buffers, struct v4l2_buffer buf) {
+    char out_name[256];
+
+    sprintf(out_name, "out.ppm");
+    fout = fopen(out_name, "w");
+    if (!fout) {
+        perror("Cannot open image");
+        exit(EXIT_FAILURE);
+    }
+    //fprintf(fout, "P6\n%d %d 255\n",
+      //          fmt.fmt.pix.width, fmt.fmt.pix.height);
+      //
+    fprintf(fout, "P6\n640 480 255\n");
+
+    printf("%d\n", buf.bytesused);
+    fwrite(buffers[buf.index].start, buf.bytesused, 1, fout);
+    fclose(fout);
+}
+
+#endif 
+
+int main() {
+
+    grab_frame();
+
+    return 1;
 }
