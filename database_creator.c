@@ -1,5 +1,4 @@
-/* V4L2 video picture grabber
-   Copyright (C) 2009 Mauro Carvalho Chehab <mchehab@infradead.org>
+/* FormsDetector based on V4L2 video picture grabber
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -51,7 +50,7 @@ void binarize(struct buffer *buffers, struct v4l2_buffer buf) {
     char out_name[256];
     FILE *fout;
     int i, sentinel;
-    unsigned char frame[buf.bytesused];
+    unsigned char rgb_frame[buf.bytesused], bw_frame[buf.bytesused/3];
     unsigned char pixel[3];
 
     printf("binarizing...\n");
@@ -67,9 +66,9 @@ void binarize(struct buffer *buffers, struct v4l2_buffer buf) {
 
     for (i=0; i<=buf.bytesused; i=i+3) {
 
-        pixel[0] = frame[i];
-        pixel[1] = frame[i+1];
-        pixel[2] = frame[i+2];
+        pixel[0] = rgb_frame[i];
+        pixel[1] = rgb_frame[i+1];
+        pixel[2] = rgb_frame[i+2];
 
         if (pixel[0] > 255) pixel[0] = 255;
         if (pixel[0] <  0 ) pixel[0] = 0;
