@@ -52,6 +52,7 @@ void binarize(struct buffer *buffers, struct v4l2_buffer buf) {
     unsigned char frame[buf.bytesused];
     unsigned char pixel[3];
 
+    printf("binarizing...\n");
     sprintf(out_name, "out.ppm");
     fout = fopen(out_name, "w");
     if (!fout) {
@@ -68,9 +69,6 @@ void binarize(struct buffer *buffers, struct v4l2_buffer buf) {
         pixel[1] = frame[i+1];
         pixel[2] = frame[i+2];
 
-  //      printf("ANT: %d %d %d \n", pixel[0], pixel[1], \
-                                                pixel[2]);
-
         if (pixel[0] > 255) pixel[0] = 255;
         if (pixel[0] <  0 ) pixel[0] = 0;
 
@@ -79,23 +77,13 @@ void binarize(struct buffer *buffers, struct v4l2_buffer buf) {
 
         if (pixel[2] > 255) pixel[2] = 255;
         if (pixel[2] <  0 ) pixel[2] = 0;
-//        printf("DEP: %d %d %d \n", pixel[0], pixel[1], \
-                                                pixel[2]);
-
 
         fprintf(fout, "%u %u %u ", pixel[0], pixel[1], \
                                                 pixel[2]);
-
-        
-      //fputc(frame[i], fout);
     }
-
-//    fwrite(frame, buf.bytesused, 1, fout);
 
     fclose(fout);
 }
-
-
 
 int grab_frame()
 {
@@ -116,6 +104,7 @@ int grab_frame()
                 exit(EXIT_FAILURE);
         }
 
+        printf("grabbing a frame...\n");
         CLEAR(fmt);
         fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
         fmt.fmt.pix.width       = 640;
@@ -132,7 +121,7 @@ int grab_frame()
                         fmt.fmt.pix.width, fmt.fmt.pix.height);
 
         CLEAR(req);
-        req.count = 1;
+        req.count = 100;
         req.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
         req.memory = V4L2_MEMORY_MMAP;
         xioctl(fd, VIDIOC_REQBUFS, &req);
@@ -168,7 +157,7 @@ int grab_frame()
         type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
 
         xioctl(fd, VIDIOC_STREAMON, &type);
-        for (i = 0; i < 1; i++) {
+        for (i = 0; i < req.count; i++) {
                 do {
                         FD_ZERO(&fds);
                         FD_SET(fd, &fds);
@@ -189,10 +178,11 @@ int grab_frame()
                 buf.memory = V4L2_MEMORY_MMAP;
                 xioctl(fd, VIDIOC_DQBUF, &buf);
 
-                binarize(buffers, buf);
 
                 xioctl(fd, VIDIOC_QBUF, &buf);
         }
+
+        binarize(buffers, buf);
 
         type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
         xioctl(fd, VIDIOC_STREAMOFF, &type);
