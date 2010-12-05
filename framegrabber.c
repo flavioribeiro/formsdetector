@@ -25,6 +25,8 @@
 
 #define CLEAR(x) memset(&(x), 0, sizeof(x))
 
+#define THRESHOLD 87
+
 struct buffer {
         char   *start;
         size_t length;
@@ -48,18 +50,18 @@ static void xioctl(int fh, int request, void *arg)
 void binarize(struct buffer *buffers, struct v4l2_buffer buf) {
     char out_name[256];
     FILE *fout;
-    int i;
+    int i, sentinel;
     unsigned char frame[buf.bytesused];
     unsigned char pixel[3];
 
     printf("binarizing...\n");
-    sprintf(out_name, "out.ppm");
+    sprintf(out_name, "out.pbm");
     fout = fopen(out_name, "w");
     if (!fout) {
         perror("Cannot open image");
         exit(EXIT_FAILURE);
     }
-    fprintf(fout, "P3\n640 480 500\n");
+    fprintf(fout, "P1\n640 480 500\n");
 
     memcpy(frame, buffers[buf.index].start, buf.bytesused);
 
@@ -78,8 +80,16 @@ void binarize(struct buffer *buffers, struct v4l2_buffer buf) {
         if (pixel[2] > 255) pixel[2] = 255;
         if (pixel[2] <  0 ) pixel[2] = 0;
 
-        fprintf(fout, "%u %u %u ", pixel[0], pixel[1], \
-                                                pixel[2]);
+        if (pixel[0] > THRESHOLD) sentinel++;
+        if (pixel[1] > THRESHOLD) sentinel++;
+        if (pixel[2] > THRESHOLD) sentinel++;
+
+        if (sentinel >= 2)
+            fprintf(fout, "0");
+        else
+            fprintf(fout, "1");
+
+        sentinel = 0;
     }
 
     fclose(fout);
@@ -104,7 +114,7 @@ int grab_frame()
                 exit(EXIT_FAILURE);
         }
 
-        printf("grabbing a frame...\n");
+        printf("grabbing frame...\n");
         CLEAR(fmt);
         fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
         fmt.fmt.pix.width       = 640;
