@@ -49,8 +49,8 @@ void binarize(struct buffer *buffers, struct v4l2_buffer buf) {
     char out_name[256];
     FILE *fout;
     int i;
-    char frame[buf.bytesused];
-    char pixel[3];
+    unsigned char frame[buf.bytesused];
+    unsigned char pixel[3];
 
     sprintf(out_name, "out.ppm");
     fout = fopen(out_name, "w");
@@ -58,25 +58,32 @@ void binarize(struct buffer *buffers, struct v4l2_buffer buf) {
         perror("Cannot open image");
         exit(EXIT_FAILURE);
     }
-    fprintf(fout, "P3\n640 480 255\n");
+    fprintf(fout, "P3\n640 480 500\n");
 
     memcpy(frame, buffers[buf.index].start, buf.bytesused);
 
     for (i=0; i<=buf.bytesused; i=i+3) {
 
         pixel[0] = frame[i];
+        pixel[1] = frame[i+1];
+        pixel[2] = frame[i+2];
+
+  //      printf("ANT: %d %d %d \n", pixel[0], pixel[1], \
+                                                pixel[2]);
+
         if (pixel[0] > 255) pixel[0] = 255;
         if (pixel[0] <  0 ) pixel[0] = 0;
 
-        pixel[1] = frame[i+1];
         if (pixel[1] > 255) pixel[1] = 255;
         if (pixel[1] <  0 ) pixel[1] = 0;
 
-        pixel[2] = frame[i+2];
         if (pixel[2] > 255) pixel[2] = 255;
         if (pixel[2] <  0 ) pixel[2] = 0;
+//        printf("DEP: %d %d %d \n", pixel[0], pixel[1], \
+                                                pixel[2]);
 
-        fprintf(fout, "%d %d %d ", pixel[0], pixel[1], \
+
+        fprintf(fout, "%u %u %u ", pixel[0], pixel[1], \
                                                 pixel[2]);
 
         
