@@ -24,7 +24,7 @@
 
 #define CLEAR(x) memset(&(x), 0, sizeof(x))
 
-#define THRESHOLD 87
+#define THRESHOLD 150
 
 struct buffer {
         char   *start;
@@ -60,7 +60,7 @@ void binarize(struct buffer *buffers, struct v4l2_buffer buf) {
         perror("Cannot open image");
         exit(EXIT_FAILURE);
     }
-    fprintf(fout, "P1\n640 480 500\n");
+    fprintf(fout, "P1\n640 480 255\n");
 
     memcpy(rgb_frame, buffers[buf.index].start, buf.bytesused);
 
@@ -79,6 +79,7 @@ void binarize(struct buffer *buffers, struct v4l2_buffer buf) {
         if (pixel[2] > 255) pixel[2] = 255;
         if (pixel[2] <  0 ) pixel[2] = 0;
 
+//        printf("%u %u %u", pixel[0], pixel[1], pixel[2]);
         if (pixel[0] > THRESHOLD) sentinel++;
         if (pixel[1] > THRESHOLD) sentinel++;
         if (pixel[2] > THRESHOLD) sentinel++;
@@ -92,6 +93,7 @@ void binarize(struct buffer *buffers, struct v4l2_buffer buf) {
     }
 
     fclose(fout);
+
 }
 
 int grab_frame()
@@ -104,7 +106,7 @@ int grab_frame()
         struct timeval                  tv;
         int                             r, fd = -1;
         unsigned int                    i, n_buffers;
-        char                            *dev_name = "/dev/video0";
+        char                            *dev_name = "/dev/video1";
         struct buffer                   *buffers;
 
         fd = v4l2_open(dev_name, O_RDWR | O_NONBLOCK, 0);

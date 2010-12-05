@@ -24,7 +24,7 @@
 
 #define CLEAR(x) memset(&(x), 0, sizeof(x))
 
-#define THRESHOLD 87
+#define THRESHOLD 150 
 
 struct buffer {
         char   *start;
@@ -48,19 +48,15 @@ static void xioctl(int fh, int request, void *arg)
 
 void binarize(struct buffer *buffers, struct v4l2_buffer buf) {
     char out_name[256];
-    FILE *fout;
-    int i, sentinel;
+    FILE *fout, *ball, *square, *triangle, *saida;
+    int i, sentinel, ball_sentinel =0, square_sentinel=0, triangle_sentinel=0;
     unsigned char rgb_frame[buf.bytesused], bw_frame[buf.bytesused/3];
+    unsigned char ball_frame[buf.bytesused/3], square_frame[buf.bytesused/3], triangle_frame[buf.bytesused/3];
     unsigned char pixel[3];
 
-    printf("binarizing...\n");
-    sprintf(out_name, "out.pbm");
-    fout = fopen(out_name, "w");
-    if (!fout) {
-        perror("Cannot open image");
-        exit(EXIT_FAILURE);
-    }
-    fprintf(fout, "P1\n640 480 500\n");
+    printf("binarizando\n");
+
+    fout = fopen("retrato.pbm", "w");
 
     memcpy(rgb_frame, buffers[buf.index].start, buf.bytesused);
 
@@ -92,6 +88,82 @@ void binarize(struct buffer *buffers, struct v4l2_buffer buf) {
     }
 
     fclose(fout);
+
+    ball = fopen("ball.pbm", "r");
+    square = fopen("square.pbm","r");
+    triangle = fopen("triangle.pbm","r");
+    saida = fopen("retrato.pbm","r");
+
+    fread(ball_frame, buf.bytesused/3, 1, ball);
+    fread(square_frame, buf.bytesused/3, 1, square);
+    fread(triangle_frame, buf.bytesused/3, 1, triangle);
+    fread(bw_frame, buf.bytesused/3, 1, saida);
+
+    for(i=0; i<=buf.bytesused/3; i++) {
+#if 0
+        if ( bw_frame[1] == ball_frame[1]) ball_sentinel++;
+        if ( bw_frame[1] == triangle_frame[1])  triangle_sentinel++;
+        if ( bw_frame[1] == square_frame[1]) square_sentinel++;
+#endif
+#if 1
+        if ((bw_frame[i] == '0') && (ball_frame[i]     == '0')) ball_sentinel++;
+        if ((bw_frame[i] == '1') && (ball_frame[i]     == '1')) ball_sentinel++;
+     //   if ((bw_frame[i] == '1') && (ball_frame[i]     == '0')) ball_sentinel--;
+     //   if ((bw_frame[i] == '0') && (ball_frame[i]     == '1')) ball_sentinel--;
+        
+        if ((bw_frame[i] == '0') && (triangle_frame[i]   == '0')) triangle_sentinel++;
+        if ((bw_frame[i] == '1') && (triangle_frame[i]   == '1')) triangle_sentinel++;
+     //   if ((bw_frame[i] == '1') && (triangle_frame[i]   == '0')) triangle_sentinel--;
+     //   if ((bw_frame[i] == '0') && (triangle_frame[i]   == '1')) triangle_sentinel--;
+
+        if ((bw_frame[i] == '0') && (square_frame[i]     == '0')) square_sentinel++;
+        if ((bw_frame[i] == '1') && (square_frame[i]     == '1')) square_sentinel++;
+       // if ((bw_frame[i] == '1') && (square_frame[i]     == '0')) square_sentinel--;
+     //   if ((bw_frame[i] == '0') && (square_frame[i]     == '1')) square_sentinel--;
+#endif
+   }
+    fclose(ball);
+    fclose(triangle);
+    fclose(square);
+    fclose(saida);
+
+    ball = fopen("amostras/ball_mod.pbm","w");
+    square = fopen("amostras/square_mod.pbm","w");
+    triangle = fopen("amostras/triangle_mod.pbm","w");
+    fout = fopen("amostras/saida.pbm","w");
+
+    fprintf(square, "P1\n640 480 255\n");
+    fwrite(square_frame, buf.bytesused/3, 1, square);
+ 
+    fprintf(ball, "P1\n640 480 255\n");
+    fwrite(ball_frame, buf.bytesused/3, 1, ball);
+ 
+    fprintf(triangle, "P1\n640 480 255\n");
+    fwrite(triangle_frame, buf.bytesused/3, 1, triangle);
+ 
+    fprintf(fout, "P1\n640 480 255\n");
+    fwrite(bw_frame, buf.bytesused/3, 1, fout);
+
+    fclose(fout);
+    fclose(square);
+    fclose(ball);
+    fclose(triangle);
+
+    printf("É um circulo? %d\n", ball_sentinel);
+    printf("É um triangulo? %d\n", triangle_sentinel);
+    printf("É um quadrado? %d\n", square_sentinel);
+
+    if ((ball_sentinel > triangle_sentinel) && \
+            (ball_sentinel > square_sentinel))
+            printf("\nEH UMA BOLA\n");
+
+    else if ((triangle_sentinel > ball_sentinel) && \
+            (triangle_sentinel > square_sentinel))
+            printf("\nEH UM TRIANGULO\n");
+
+    else if ((square_sentinel > ball_sentinel) && \
+            (square_sentinel > triangle_sentinel))
+            printf("\nEH UM QUADRADO\n");
 }
 
 int grab_frame()
@@ -104,7 +176,7 @@ int grab_frame()
         struct timeval                  tv;
         int                             r, fd = -1;
         unsigned int                    i, n_buffers;
-        char                            *dev_name = "/dev/video0";
+        char                            *dev_name = "/dev/video1";
         struct buffer                   *buffers;
 
         fd = v4l2_open(dev_name, O_RDWR | O_NONBLOCK, 0);
