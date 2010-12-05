@@ -26,7 +26,7 @@
 #define CLEAR(x) memset(&(x), 0, sizeof(x))
 
 struct buffer {
-        void   *start;
+        char   *start;
         size_t length;
 };
 
@@ -47,7 +47,10 @@ static void xioctl(int fh, int request, void *arg)
 
 void binarize(struct buffer *buffers, struct v4l2_buffer buf) {
     char out_name[256];
-    FILE                            *fout;
+    FILE *fout;
+    int i;
+    char frame[buf.bytesused];
+    char pixel[3];
 
     sprintf(out_name, "out.ppm");
     fout = fopen(out_name, "w");
@@ -57,8 +60,30 @@ void binarize(struct buffer *buffers, struct v4l2_buffer buf) {
     }
     fprintf(fout, "P6\n640 480 255\n");
 
-    printf("%d\n", buf.bytesused);
-    fwrite(buffers[buf.index].start, buf.bytesused, 1, fout);
+    memcpy(frame, buffers[buf.index].start, buf.bytesused);
+
+    for (i=0; i<=buf.bytesused; i++) {
+        pixel[0] = (frame[i] & 0xff0000) >> 16; // Vermelho
+        if (pixel[0] > 255) pixel[0] = 255;
+        if (pixel[0] <  0 ) pixel[0] = 0;
+
+        pixel[1] = (frame[i] & 0x00ff00) >> 8; // Verde
+        if (pixel[1] > 255) pixel[1] = 255;
+        if (pixel[1] <  0 ) pixel[1] = 0;
+
+        pixel[2] = (frame[i] & 0x0000ff); //Azul
+        if (pixel[2] > 255) pixel[2] = 255;
+        if (pixel[2] <  0 ) pixel[2] = 0;
+
+        //fprintf(fout, "%d %d %d ", pixel[0], pixel[1], \
+                                                pixel[2]);
+
+        
+      fputc(frame[i], fout);
+    }
+
+//    fwrite(frame, buf.bytesused, 1, fout);
+
     fclose(fout);
 }
 
