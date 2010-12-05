@@ -58,28 +58,29 @@ void binarize(struct buffer *buffers, struct v4l2_buffer buf) {
         perror("Cannot open image");
         exit(EXIT_FAILURE);
     }
-    fprintf(fout, "P6\n640 480 255\n");
+    fprintf(fout, "P3\n640 480 255\n");
 
     memcpy(frame, buffers[buf.index].start, buf.bytesused);
 
-    for (i=0; i<=buf.bytesused; i++) {
-        pixel[0] = (frame[i] & 0xff0000) >> 16; // Vermelho
+    for (i=0; i<=buf.bytesused; i=i+3) {
+
+        pixel[0] = frame[i];
         if (pixel[0] > 255) pixel[0] = 255;
         if (pixel[0] <  0 ) pixel[0] = 0;
 
-        pixel[1] = (frame[i] & 0x00ff00) >> 8; // Verde
+        pixel[1] = frame[i+1];
         if (pixel[1] > 255) pixel[1] = 255;
         if (pixel[1] <  0 ) pixel[1] = 0;
 
-        pixel[2] = (frame[i] & 0x0000ff); //Azul
+        pixel[2] = frame[i+2];
         if (pixel[2] > 255) pixel[2] = 255;
         if (pixel[2] <  0 ) pixel[2] = 0;
 
-        //fprintf(fout, "%d %d %d ", pixel[0], pixel[1], \
+        fprintf(fout, "%d %d %d ", pixel[0], pixel[1], \
                                                 pixel[2]);
 
         
-      fputc(frame[i], fout);
+      //fputc(frame[i], fout);
     }
 
 //    fwrite(frame, buf.bytesused, 1, fout);
@@ -194,27 +195,6 @@ int grab_frame()
 
         return 0;
 }
-#if 0
-void binarize(struct buffer *buffers, struct v4l2_buffer buf) {
-    char out_name[256];
-
-    sprintf(out_name, "out.ppm");
-    fout = fopen(out_name, "w");
-    if (!fout) {
-        perror("Cannot open image");
-        exit(EXIT_FAILURE);
-    }
-    //fprintf(fout, "P6\n%d %d 255\n",
-      //          fmt.fmt.pix.width, fmt.fmt.pix.height);
-      //
-    fprintf(fout, "P6\n640 480 255\n");
-
-    printf("%d\n", buf.bytesused);
-    fwrite(buffers[buf.index].start, buf.bytesused, 1, fout);
-    fclose(fout);
-}
-
-#endif 
 
 int main() {
 
